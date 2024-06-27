@@ -1,0 +1,32 @@
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Flask specific
+instance/
+*.pyc
+*.pyo
+*.pyd
+*.py~
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.flaskenv
+
+# Logs
+*.log
+
+# Selenium webdriver logs
+geckodriver.log
+chromedriver.log
+
+# Scraping output directories (adjust as needed)
+scraped_data/
+
+# Other generated files
+*.sqlite3
