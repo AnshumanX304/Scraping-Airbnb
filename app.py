@@ -6,6 +6,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from flask import request, jsonify
+import asyncio
+from summariseReviews import summarize_reviews
 
 app = Flask(__name__)
 
@@ -39,6 +41,8 @@ def scrape_airbnb_reviews(url):
             name = element.find_element(By.CSS_SELECTOR, 'h2').text.strip()
             content = element.find_elements(By.CSS_SELECTOR, 'span')[-1].text.strip()
             reviews.append({'name': name, 'content': content})
+
+        asyncio.run(summarize_reviews(reviews))
         
         return reviews
     except Exception as e:
