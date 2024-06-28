@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import time
+from flask import request, jsonify
 
 app = Flask(__name__)
 
@@ -85,7 +85,10 @@ def scrape_airbnb_amenities(url):
 
 @app.route('/scrape')
 def scrape():
-    url = "https://www.airbnb.co.in/rooms/858697692672545141?category_tag=Tag%3A8678&enable_m3_private_room=true&photo_id=1728488302&search_mode=regular_search&check_in=2024-06-28&check_out=2024-06-29&source_impression_id=p3_1719410416_P3fACuyveajy0eSk&previous_page_section_name=1000&federated_search_id=49a88c11-aa1c-43f2-9125-e1e8745a3d3b&locale=en&_set_bev_on_new_domain=1719467012_EAMjIxZjFiMTg3NT"
+    url = request.args.get('url')
+    
+    if not url:
+        return jsonify({'error': 'URL parameter is missing'}), 400
     
     try:
         reviews = scrape_airbnb_reviews(url)
@@ -96,7 +99,11 @@ def scrape():
     
 @app.route('/scrape-amenities')
 def scrapeAmenities():
-    url = "https://www.airbnb.co.in/rooms/858697692672545141?category_tag=Tag%3A8678&enable_m3_private_room=true&photo_id=1728488302&search_mode=regular_search&check_in=2024-06-28&check_out=2024-06-29&source_impression_id=p3_1719410416_P3fACuyveajy0eSk&previous_page_section_name=1000&federated_search_id=49a88c11-aa1c-43f2-9125-e1e8745a3d3b&locale=en&_set_bev_on_new_domain=1719467012_EAMjIxZjFiMTg3NT"
+    url = request.args.get('url')
+    
+    if not url:
+        return jsonify({'error': 'URL parameter is missing'}), 400
+    
     
     try:
         amenities = scrape_airbnb_amenities(url)
