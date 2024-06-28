@@ -42,9 +42,13 @@ def scrape_airbnb_reviews(url):
             content = element.find_elements(By.CSS_SELECTOR, 'span')[-1].text.strip()
             reviews.append({'name': name, 'content': content})
 
-        asyncio.run(summarize_reviews(reviews))
+        summarized_data=asyncio.run(summarize_reviews(reviews))
+        # print(data)
         
-        return reviews
+        return {
+            'reviews': reviews,
+            'summary': summarized_data
+        }
     except Exception as e:
         print('Error during scraping:', str(e))
         raise e
@@ -95,8 +99,9 @@ def scrape():
         return jsonify({'error': 'URL parameter is missing'}), 400
     
     try:
-        reviews = scrape_airbnb_reviews(url)
-        return jsonify({'reviews': reviews})
+        data = scrape_airbnb_reviews(url)
+        return jsonify({'reviews': data['reviews'],
+            "summarized_data": data['summary']})
     except Exception as e:
         print('Scraping error:', str(e))
         return jsonify({'error': 'An error occurred while scraping'}), 500
