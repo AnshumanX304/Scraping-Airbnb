@@ -2,17 +2,12 @@ import os
 from dotenv import load_dotenv
 from langfuse import Langfuse
 import uuid
-from anthropic import AnthropicBedrock
 from typing import List, Dict, Union
-
+from openai import OpenAI
 
 load_dotenv()
 
-client = AnthropicBedrock(
-    aws_secret_key=os.getenv("AWS_SECRET_KEY"),
-    aws_access_key=os.getenv("AWS_ACCESS_KEY"),
-    aws_region="us-east-1"
-)
+client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url="https://api.deepseek.com")
 
 langfuse = Langfuse(
     secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
@@ -30,7 +25,7 @@ async def call_llm_haiku_via_messages(
     model: str = "claude-3-haiku-20240307",
     meta: Dict = {}
 ) -> str:
-    # print("i reached here1")
+
     trace = langfuse.trace(
         name=user,
         session_id=session_id,
@@ -38,7 +33,7 @@ async def call_llm_haiku_via_messages(
         user_id=meta.get("type", "no-type"),
         version=model
     )
-    # print("i reached here2")
+
 
     max_tokens = 2048
 
@@ -51,23 +46,18 @@ async def call_llm_haiku_via_messages(
         },
         input=[{"role": "system", "content": system}] + messages
     )
-    # print("i reached here3")
-    
 
-    result = client.messages.create(
-        temperature=temperature,
-        system=system,
-        messages=messages,
-        model=model,
-        max_tokens=max_tokens
-    )
-    # print("i reached here4")
+    result = client.chat.completions.create(
+    model="deepseek-chat",
+    messages=messages,
+    stream=False
+)
 
-    print("result.content[0].text", result.content[0].text)
+    print(result.choices[0].message.content)
 
     metadata: Dict[str, str] = {}
     trace.update(
-        output=str(result.content),
+        output=str(result.choices[0].message),
         metadata=metadata
     )
 
@@ -76,4 +66,4 @@ async def call_llm_haiku_via_messages(
         version=model
     )
 
-    return result.content[0].text
+    return result.choices[0].message.content
