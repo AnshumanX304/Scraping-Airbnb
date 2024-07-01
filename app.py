@@ -9,7 +9,21 @@ from flask import request, jsonify
 import asyncio
 from summariseReviews import summarize_reviews
 
+import requests
+import certifi
+import io
+import os
+import gzip
+import csv
+from pymongo import MongoClient
+
 app = Flask(__name__)
+
+
+MONGO_URI = os.getenv('MONGO_URI')
+client = MongoClient(MONGO_URI,tlsCAFile=certifi.where())
+db = client['airbnb_data']
+listings_collection = db['listings']
 
 def connect_browser():
     options = webdriver.ChromeOptions()
@@ -17,6 +31,50 @@ def connect_browser():
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     driver.set_window_size(1280, 800)
     return driver
+
+
+def download_and_store_listings(url):
+    driver = connect_browser()
+    try:
+        driver.get(url)
+
+        wait = WebDriverWait(driver, 10)
+        table = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "albany")))
+
+        listings_link = table.find_element(By.XPATH, ".//a[contains(text(), 'listings.csv.gz')]")
+        download_url = listings_link.get_attribute('href')
+
+        response = requests.get(download_url)
+        response.raise_for_status() 
+
+        with gzip.open(io.BytesIO(response.content), 'rt', encoding='utf-8') as f:
+            csv_reader = csv.DictReader(f)
+            listings = []
+            for row in csv_reader:
+                listings.append(row)
+                if len(listings) == 1000:
+                    listings_collection.insert_many(listings)
+                    listings = []
+
+            if listings:
+                listings_collection.insert_many(listings)
+
+        total_listings = listings_collection.count_documents({})
+
+        return jsonify({
+            'status': 'success',
+            'message': f'Successfully stored {total_listings} listings in the database.',
+            'total_listings': total_listings
+        })
+
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+    finally:
+        driver.quit()
 
 def scrape_airbnb_reviews(url):
     driver = connect_browser()
@@ -117,6 +175,20 @@ def scrapeAmenities():
     try:
         amenities = scrape_airbnb_amenities(url)
         return jsonify({'reviews': amenities})
+    except Exception as e:
+        print('Scraping error:', str(e))
+        return jsonify({'error': 'An error occurred while scraping'}), 500
+    
+
+@app.route('/scrape-listings')
+def scrapeListings():
+    url = request.args.get('url')
+    
+    if not url:
+        return jsonify({'error': 'URL parameter is missing'}), 400
+    try:
+        res = download_and_store_listings(url)
+        return res
     except Exception as e:
         print('Scraping error:', str(e))
         return jsonify({'error': 'An error occurred while scraping'}), 500
